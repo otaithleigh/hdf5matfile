@@ -89,23 +89,23 @@ class Hdf5Matfile():
     to:
 
     ===============  =============  =============
-      MATLAB type    Python object   NumPy dtype
+    MATLAB type      Python object  NumPy dtype
     ===============  =============  =============
     cell             np.ndarray     object
     char             str            n/a
-    double           np.ndarray     np.double
-    int8             np.ndarray     np.byte
-    int16            np.ndarray     np.short
-    int32            np.ndarray     np.intc
-    int64            np.ndarray     np.int_
+    double           np.ndarray     double
+    int8             np.ndarray     byte
+    int16            np.ndarray     short
+    int32            np.ndarray     intc
+    int64            np.ndarray     int_
     logical          np.ndarray     bool8
     single           np.ndarray     single
     struct (scalar)  dict           n/a
     struct (array)   np.ndarray     object (dict)
-    uint8            np.ndarray     np.ubyte
-    uint16           np.ndarray     np.ushort
-    uint32           np.ndarray     np.uintc
-    uint64           np.ndarray     np.uint
+    uint8            np.ndarray     ubyte
+    uint16           np.ndarray     ushort
+    uint32           np.ndarray     uintc
+    uint64           np.ndarray     uint
     ===============  =============  =============
 
     .. |load_file| :method:`Hdf5Matfile.load_file`
