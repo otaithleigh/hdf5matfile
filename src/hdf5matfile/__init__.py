@@ -164,7 +164,7 @@ class Hdf5Matfile():
         """
         d = {}
         for key, value in self._h5file.items():
-            if key == '#refs#':
+            if key.startswith('#'):
                 continue
             d[key] = self._load_item(value)
         return d
@@ -181,8 +181,8 @@ class Hdf5Matfile():
         -------
 
         """
-        if varname == '#refs#':
-            raise KeyError('#refs# is not a MATLAB variable.')
+        if varname.startswith('#'):
+            raise KeyError(f'{varname!r} is not a MATLAB variable.')
 
         return self._load_item(self._h5file[varname])
 
