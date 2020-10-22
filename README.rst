@@ -1,7 +1,7 @@
 hdf5matfile
 ===========
 
-Load data from v7.3 *.mat files. Only reading is supported, no writing.
+Load data from v7.3 \*.mat files. Only reading is supported, no writing.
 
 
 Usage
@@ -59,7 +59,7 @@ double           np.ndarray     np.double
 int8             np.ndarray     np.byte
 int16            np.ndarray     np.short
 int32            np.ndarray     np.intc
-int64            np.ndarray     np.int_
+int64            np.ndarray     np.int\_
 logical          np.ndarray     bool8
 single           np.ndarray     single
 struct (scalar)  dict           n/a
@@ -69,7 +69,3 @@ uint16           np.ndarray     np.ushort
 uint32           np.ndarray     np.uintc
 uint64           np.ndarray     np.uint
 ===============  =============  =============
-
-
-.. ``load_file| :method:`Hdf5Matfile.load_file`
-.. |load_variable| :method:`Hdf5Matfile.load_variable`
