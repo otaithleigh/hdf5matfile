@@ -1,0 +1,28 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: hdf5matfile
+  version: {{ data.get('version') }}
+
+source:
+  path: ".."
+
+build:
+  noarch: python
+
+requirements:
+  host:
+    - python
+  run:
+    - python>=3.7.0
+    - h5py
+    - numpy>=1.15.0
+
+test:
+  imports:
+    - hdf5matfile
+
+about:
+  home: {{ data.get('url') }}
+  license: {{ data.get('license') }}
+  summary: {{ data.get('description') }}
