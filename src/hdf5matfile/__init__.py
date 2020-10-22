@@ -202,6 +202,8 @@ class Hdf5Matfile():
         return a
 
     def _load_numeric(self, numeric, dtype=None):
+        if 'MATLAB_empty' in numeric.attrs:
+            return np.array([], dtype=dtype)
         return self._squeeze(numeric[()].astype(dtype))
 
     def _load_struct(self, struct):
