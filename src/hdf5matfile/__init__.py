@@ -1,6 +1,11 @@
 import h5py
 import numpy as np
 
+__all__ = [
+    'Hdf5Matfile',
+    'load_hdf5mat',
+]
+
 
 def isstructarray(struct):
     """Determine whether the given MATLAB struct is scalar or not."""
