@@ -33,6 +33,10 @@ def decodechar(char, encoding='utf-8'):
     return char.tobytes().decode(encoding).replace('\x00', '')
 
 
+class MatlabDecodeError(Exception):
+    pass
+
+
 class Hdf5Matfile():
     """Load data from an v7.3 *.mat file. Only reading is supported, no writing.
 
@@ -188,7 +192,11 @@ class Hdf5Matfile():
 
     def _load_item(self, item):
         matlab_class = item.attrs['MATLAB_class']
-        loader = self._loader_dispatch[matlab_class]
+        try:
+            loader = self._loader_dispatch[matlab_class]
+        except KeyError as e:
+            raise MatlabDecodeError(
+                f'Unsupported MATLAB class: {matlab_class.decode()!r}') from e
         return loader(item)
 
     def _load_char(self, char):
