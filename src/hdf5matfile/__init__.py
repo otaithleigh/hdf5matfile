@@ -178,17 +178,13 @@ class Hdf5Matfile():
             d[key] = self._load_item(value)
         return d
 
-    def load_variable(self, varname):
+    def load_variable(self, varname: str):
         """Load a specific variable from the file.
 
         Parameters
         ----------
         varname : str
             The name of the variable to load.
-
-        Returns
-        -------
-
         """
         if varname.startswith('#'):
             raise KeyError(f'{varname!r} is not a MATLAB variable.')
