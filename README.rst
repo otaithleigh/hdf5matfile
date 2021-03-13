@@ -56,16 +56,16 @@ to:
 cell             np.ndarray     object
 char             str            n/a
 double           np.ndarray     np.double
-int8             np.ndarray     np.byte
-int16            np.ndarray     np.short
-int32            np.ndarray     np.intc
-int64            np.ndarray     np.int\_
-logical          np.ndarray     bool8
-single           np.ndarray     single
+int8             np.ndarray     np.int8
+int16            np.ndarray     np.int16
+int32            np.ndarray     np.int32
+int64            np.ndarray     np.int64
+logical          np.ndarray     np.bool8
+single           np.ndarray     np.single
 struct (scalar)  dict           n/a
 struct (array)   np.ndarray     object (dict)
-uint8            np.ndarray     np.ubyte
-uint16           np.ndarray     np.ushort
-uint32           np.ndarray     np.uintc
-uint64           np.ndarray     np.uint
+uint8            np.ndarray     np.uint8
+uint16           np.ndarray     np.uint16
+uint32           np.ndarray     np.uint32
+uint64           np.ndarray     np.uint64
 ===============  =============  =============

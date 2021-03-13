@@ -94,18 +94,18 @@ class Hdf5Matfile():
     cell             np.ndarray     object
     char             str            n/a
     double           np.ndarray     double
-    int8             np.ndarray     byte
-    int16            np.ndarray     short
-    int32            np.ndarray     intc
-    int64            np.ndarray     int_
+    int8             np.ndarray     int8
+    int16            np.ndarray     int16
+    int32            np.ndarray     int32
+    int64            np.ndarray     int64
     logical          np.ndarray     bool8
     single           np.ndarray     single
     struct (scalar)  dict           n/a
     struct (array)   np.ndarray     object (dict)
-    uint8            np.ndarray     ubyte
-    uint16           np.ndarray     ushort
-    uint32           np.ndarray     uintc
-    uint64           np.ndarray     uint
+    uint8            np.ndarray     uint8
+    uint16           np.ndarray     uint16
+    uint32           np.ndarray     uint32
+    uint64           np.ndarray     uint64
     ===============  =============  =============
 
     .. |load_file| :method:`Hdf5Matfile.load_file`
