@@ -270,8 +270,6 @@ def load_hdf5mat(filename, variables=None, squeeze=False):
             data = file.load_file()
         elif isinstance(variables, str):
             data = file.load_variable(variables)
-        elif len(variables) == 1:
-            data = file.load_variable(variables[0])
         else:
             data = {var: file.load_variable(var) for var in variables}
 
