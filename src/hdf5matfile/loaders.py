@@ -16,9 +16,6 @@ class AbstractLoader(abc.ABC):
     def _load_item(self, item):
         return self.matfile._load_item(item)
 
-    def _squeeze(self, a):
-        return self.matfile._squeeze(a)
-
 
 class StructLoader(AbstractLoader):
     def load(self, struct):
@@ -26,7 +23,7 @@ class StructLoader(AbstractLoader):
             s = self._load_array(struct)
         else:
             s = self._load_scalar(struct)
-        return self._squeeze(s)
+        return s
 
     def _load_scalar(self, struct):
         d = {
@@ -87,14 +84,14 @@ class CellLoader(AbstractLoader):
         cellrefs = cell[()]
         for i, ref in enumerate(cellrefs.flat):
             a.flat[i] = self._load_item(ref)
-        return self._squeeze(a)
+        return a
 
 
 class NumericLoader(AbstractLoader):
     def load(self, numeric):
         if 'MATLAB_empty' in numeric.attrs:
             return np.array([], dtype=numeric.dtype)
-        return self._squeeze(numeric[()])
+        return numeric[()]
 
 
 class LogicalLoader(NumericLoader):

@@ -196,7 +196,15 @@ class Hdf5Matfile():
             raise
 
         loader = self.get_loader(matlab_class)
-        return loader.load(item)
+        the_item = loader.load(item)
+        return self._process(the_item)
+
+    def _process(self, item):
+        if isinstance(item, np.ndarray):
+            # MATLAB arrays are column-major
+            item = self._squeeze(item.transpose())
+
+        return item
 
 
 # Collections
