@@ -163,6 +163,14 @@ class Hdf5Matfile():
     def close(self):
         self._h5file.close()
 
+    @property
+    def closed(self):
+        try:
+            self._h5file.id.fileno
+        except TypeError:
+            return True
+        return False
+
     def load_file(self):
         """Load the entire file.
 
