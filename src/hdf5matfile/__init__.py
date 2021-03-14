@@ -1,41 +1,15 @@
+from typing import Dict, Type
+
 import h5py
 import numpy as np
+
+from .loaders import (AbstractLoader, CellLoader, CharLoader, LogicalLoader,
+                      NumericLoader, StructLoader)
 
 __all__ = [
     'Hdf5Matfile',
     'load_hdf5mat',
 ]
-
-
-def isstructarray(struct):
-    """Determine whether the given MATLAB struct is scalar or not."""
-    for field in struct.values():
-        # MATLAB represents scalar structs and struct arrays differently within
-        # HDF5. Scalar structs are ordinary groups with named datasets and/or
-        # subgroups. Struct arrays, however, are represented by a group with
-        # arrays of references. The arrays all have the same size (that of the
-        # struct array itself), and are grouped by field name.
-        #
-        # If the fields in the struct are *not* assigned a MATLAB_class, then
-        # they're not actual objects. This is what differentiates a struct
-        # array from a cell array -- the cell array is assigned a MATLAB_class,
-        # and the fields of a struct array are not.
-        try:
-            matlab_class = field.attrs['MATLAB_class']
-        except KeyError:
-            isarray = True
-            break
-    else:
-        # Executes if break doesn't fire
-        isarray = False
-
-    return isarray
-
-
-def decodechar(char, encoding='utf-8'):
-    """Decode a MATLAB char array to str."""
-    # MATLAB likes to pad its char arrays with null bytes for some reason.
-    return char.tobytes().decode(encoding).replace('\x00', '')
 
 
 class MatlabDecodeError(Exception):
@@ -125,22 +99,7 @@ class Hdf5Matfile():
             ``array.item()``, which returns a Python scalar. (default: False)
         """
         self._h5file = h5py.File(filename, 'r')
-        self._loader_dispatch = {
-            b'cell': self._load_cell,
-            b'char': self._load_char,
-            b'double': self._load_numeric,
-            b'int8': self._load_numeric,
-            b'int16': self._load_numeric,
-            b'int32': self._load_numeric,
-            b'int64': self._load_numeric,
-            b'logical': lambda x: self._load_numeric(x, dtype=np.bool8),
-            b'single': self._load_numeric,
-            b'struct': self._load_struct,
-            b'uint8': self._load_numeric,
-            b'uint16': self._load_numeric,
-            b'uint32': self._load_numeric,
-            b'uint64': self._load_numeric,
-        }
+        self._loaders: Dict[str, AbstractLoader] = {}
 
         def _squeeze(a):
             if a.size == 1:
@@ -151,6 +110,9 @@ class Hdf5Matfile():
 
         self._squeeze = _squeeze if squeeze else lambda x: x
 
+    #=============================================
+    # Context manager stuff
+    #=============================================
     def __enter__(self):
         return self
 
@@ -171,6 +133,9 @@ class Hdf5Matfile():
             return True
         return False
 
+    #=============================================
+    # Public interface
+    #=============================================
     def load_file(self):
         """Load the entire file.
 
@@ -199,60 +164,62 @@ class Hdf5Matfile():
 
         return self._load_item(self._h5file[varname])
 
-    def _load_item(self, item):
-        matlab_class = item.attrs['MATLAB_class']
+    #=============================================
+    # Loaders
+    #=============================================
+    _loader_dispatch: Dict[str, Type[AbstractLoader]] = {}
+
+    @classmethod
+    def register_loader(cls, matlab_class: str, loader: Type[AbstractLoader]):
+        cls._loader_dispatch[matlab_class] = loader
+
+    def get_loader(self, matlab_class: str):
         try:
-            loader = self._loader_dispatch[matlab_class]
-        except KeyError as e:
-            raise MatlabDecodeError(
-                f'Unsupported MATLAB class: {matlab_class.decode()!r}') from e
-        return loader(item)
+            loader = self._loaders[matlab_class]
+        except KeyError:
+            try:
+                LoaderType = self._loader_dispatch[matlab_class]
+            except KeyError as e:
+                raise MatlabDecodeError('Unsupported MATLAB class'
+                                        f' {matlab_class!r}') from e
+            loader = self._loaders[matlab_class] = LoaderType(self)
 
-    def _load_char(self, char):
-        return decodechar(char[()])
+        return loader
 
-    def _load_cell(self, cell):
-        cell = cell[()]
-        a = np.empty(cell.shape, dtype='O')
-        for i, ref in enumerate(cell.flat):
-            a.flat[i] = self._load_item(self._h5file[ref])
-        return a
+    def _load_item(self, item):
+        if isinstance(item, h5py.Reference):
+            return self._load_item(self._h5file[item])
 
-    def _load_numeric(self, numeric, dtype=None):
-        if 'MATLAB_empty' in numeric.attrs:
-            return np.array([], dtype=dtype)
-        return self._squeeze(numeric[()].astype(dtype))
+        try:
+            matlab_class = item.attrs['MATLAB_class'].decode()
+        except KeyError:
+            raise
 
-    def _load_struct(self, struct):
-        if isstructarray(struct):
-            return self._load_struct_array(struct)
-        else:
-            return self._load_scalar_struct(struct)
+        loader = self.get_loader(matlab_class)
+        return loader.load(item)
 
-    def _load_scalar_struct(self, struct):
-        d = {}
-        for fieldname, item in struct.items():
-            d[fieldname] = self._load_item(item)
-        return d
 
-    def _load_struct_array(self, struct):
-        # Get an item from the struct to figure out how big it is, then stick it
-        # back in the dict. I have no idea if there's a cleaner way, I just need
-        # to inspect a single item *before* looping!
-        pointers = dict(struct)
-        fieldname, refarray = pointers.popitem()
-        pointers[fieldname] = refarray
+# Collections
+Hdf5Matfile.register_loader('struct', StructLoader)
+Hdf5Matfile.register_loader('cell', CellLoader)
 
-        # Initialize array of dict
-        a = np.empty(refarray.shape, dtype='O')
-        for i, _ in enumerate(a.flat):
-            a[i] = dict()
+# Floats
+Hdf5Matfile.register_loader('single', NumericLoader)
+Hdf5Matfile.register_loader('double', NumericLoader)
 
-        for fieldname, refarray in pointers.items():
-            for i, ref in enumerate(refarray[()].flat):
-                a.flat[i][fieldname] = self._load_item(self._h5file[ref])
+# Integers
+Hdf5Matfile.register_loader('logical', LogicalLoader)
+Hdf5Matfile.register_loader('int8', NumericLoader)
+Hdf5Matfile.register_loader('int16', NumericLoader)
+Hdf5Matfile.register_loader('int32', NumericLoader)
+Hdf5Matfile.register_loader('int64', NumericLoader)
+Hdf5Matfile.register_loader('uint8', NumericLoader)
+Hdf5Matfile.register_loader('uint16', NumericLoader)
+Hdf5Matfile.register_loader('uint32', NumericLoader)
+Hdf5Matfile.register_loader('uint64', NumericLoader)
 
-        return self._squeeze(a)
+# Strings
+Hdf5Matfile.register_loader('char', CharLoader)
 
 
 def load_hdf5mat(filename, variables=None, squeeze=False):
