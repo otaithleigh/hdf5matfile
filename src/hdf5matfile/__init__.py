@@ -55,6 +55,7 @@ class Hdf5Matfile(collections.abc.Mapping):
 
         file = Hdf5Matfile(filename)
         data = file.load_file()
+        ...
         file.close()
 
     By default, arrays are not squeezed; since MATLAB represents even scalars
