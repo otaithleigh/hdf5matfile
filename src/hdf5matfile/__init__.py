@@ -106,25 +106,17 @@ class Hdf5Matfile(collections.abc.Mapping):
         filename : path_like
             Path to the *.mat file.
 
-        squeeze : bool, optional
+        squeeze : bool, int, optional
             If True, squeeze loaded arrays (remove dimensions with size 1). If
-            the array only has one element, it is extracted from the array using
-            ``array.item()``, which returns a Python scalar. (default: False)
+            the array only has one element, it is extracted from the array
+            completely (instead of returning a 0-d array).
         """
         try:
             self._h5file = h5py.File(filename, 'r')
         except OSError as e:
             raise OSError(f'Could not open {filename!r} as HDF5 file') from e
         self._loaders: Dict[str, AbstractLoader] = {}
-
-        def _squeeze(a):
-            if a.size == 1:
-                squeezed = a.item()
-            else:
-                squeezed = np.squeeze(a)
-            return squeezed
-
-        self._squeeze = _squeeze if squeeze else lambda x: x
+        self.squeeze = squeeze
 
     #=============================================
     # Context manager stuff
@@ -233,10 +225,19 @@ class Hdf5Matfile(collections.abc.Mapping):
     def _process(self, item):
         if isinstance(item, np.ndarray):
             # MATLAB arrays are column-major
-            item = self._squeeze(item.transpose())
+            item = item.transpose()
+            if self.squeeze:
+                item = self._squeeze(item)
 
         return item
 
+    @staticmethod
+    def _squeeze(a: np.ndarray):
+        if a.size == 1:
+            squeezed = a.reshape(1)[0]
+        else:
+            squeezed = np.squeeze(a)
+        return squeezed
 
 # Collections
 Hdf5Matfile.register_loader('struct', StructLoader)
