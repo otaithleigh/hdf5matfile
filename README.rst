@@ -23,6 +23,17 @@ To load a specific variable, use ``Hdf5Matfile.load_variable``:
     with Hdf5Matfile(filename) as file:
         results = file.load_variable('results')
 
+A mapping/dict-like interface is also supported:
+
+.. code:: python
+
+    with Hdf5Matfile(filename) as file:
+        results = file['results']
+        variables = file.keys()
+        values = file.values()
+        for var, value in file.items():
+            ...
+
 If you're not using a context manager, make sure to close the file after
 you're done:
 

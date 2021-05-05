@@ -1,4 +1,5 @@
-from typing import Dict, Type
+import collections.abc
+from typing import Dict, Generator, Type
 
 import h5py
 import numpy as np
@@ -16,7 +17,7 @@ class MatlabDecodeError(Exception):
     pass
 
 
-class Hdf5Matfile():
+class Hdf5Matfile(collections.abc.Mapping):
     """Load data from an v7.3 *.mat file. Only reading is supported, no writing.
 
     Usage
@@ -35,6 +36,17 @@ class Hdf5Matfile():
 
         with Hdf5Matfile(filename) as file:
             results = file.load_variable('results')
+
+    A mapping/dict-like interface is also supported:
+
+    .. code-block:: python
+
+        with Hdf5Matfile(filename) as file:
+            results = file['results']
+            variables = list(file.keys())
+            values = list(file.values())
+            for var, value in file.items():
+                ...
 
     If you're not using a context manager, make sure to close the file after
     you're done:
@@ -163,6 +175,21 @@ class Hdf5Matfile():
             raise KeyError(f'{varname!r} is not a MATLAB variable.')
 
         return self._load_item(self._h5file[varname])
+
+    #=============================================
+    # Mapping interface
+    #=============================================
+    def __getitem__(self, varname: str):
+        return self.load_variable(varname)
+
+    def __iter__(self) -> Generator[str]:
+        for key in self._h5file.keys():
+            if key.startswith('#'):
+                continue
+            yield key
+
+    def __len__(self):
+        return len(list(iter(self)))
 
     #=============================================
     # Loaders
