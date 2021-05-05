@@ -111,7 +111,10 @@ class Hdf5Matfile(collections.abc.Mapping):
             the array only has one element, it is extracted from the array using
             ``array.item()``, which returns a Python scalar. (default: False)
         """
-        self._h5file = h5py.File(filename, 'r')
+        try:
+            self._h5file = h5py.File(filename, 'r')
+        except OSError as e:
+            raise OSError(f'Could not open {filename!r} as HDF5 file') from e
         self._loaders: Dict[str, AbstractLoader] = {}
 
         def _squeeze(a):
