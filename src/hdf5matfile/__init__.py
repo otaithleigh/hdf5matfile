@@ -186,7 +186,7 @@ class Hdf5Matfile(collections.abc.Mapping):
     def __getitem__(self, varname: str):
         return self.load_variable(varname)
 
-    def __iter__(self) -> Generator[str]:
+    def __iter__(self) -> Generator[str, Any, Any]:
         for key in self._h5file.keys():
             if key.startswith('#'):
                 continue
