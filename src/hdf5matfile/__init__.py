@@ -137,7 +137,13 @@ class Hdf5Matfile(collections.abc.Mapping):
         self.close()
 
     def close(self):
-        self._h5file.close()
+        """Close the underlying h5py.File object."""
+        # If object fails during creation (e.g., filename isn't valid), __del__
+        # will throw an error due to missing attribute '_h5file'.
+        try:
+            self._h5file.close()
+        except AttributeError:
+            pass
 
     @property
     def closed(self):
