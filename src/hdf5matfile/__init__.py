@@ -1,6 +1,7 @@
 import collections.abc
+import os
 import pathlib
-from typing import Dict, Generator, Type
+from typing import Any, Dict, Generator, List, Type, Union
 
 import h5py
 import numpy as np
@@ -99,7 +100,7 @@ class Hdf5Matfile(collections.abc.Mapping):
     .. |load_file| :method:`Hdf5Matfile.load_file`
     .. |load_variable| :method:`Hdf5Matfile.load_variable`
     """
-    def __init__(self, filename, squeeze=False):
+    def __init__(self, filename: os.PathLike, squeeze: bool = False):
         """Open a MATLAB v7.3 *.mat file.
 
         Parameters
@@ -264,7 +265,9 @@ Hdf5Matfile.register_loader('uint64', NumericLoader)
 Hdf5Matfile.register_loader('char', CharLoader)
 
 
-def load_hdf5mat(filename, variables=None, squeeze=False):
+def load_hdf5mat(filename: os.PathLike,
+                 variables: Union[str, List[str]] = None,
+                 squeeze: bool = False):
     """Load a MATLAB v7.3 *.mat file. See |Hdf5Matfile| for limitations and
     supported data types.
 
