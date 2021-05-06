@@ -234,7 +234,7 @@ class Hdf5Matfile(collections.abc.Mapping):
     @staticmethod
     def _squeeze(a: np.ndarray):
         if a.size == 1:
-            squeezed = a.reshape(1)[0]
+            squeezed = a.flat[0]
         else:
             squeezed = np.squeeze(a)
         return squeezed
