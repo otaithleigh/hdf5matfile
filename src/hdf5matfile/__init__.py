@@ -7,6 +7,7 @@ from typing import Any, Dict, Generator, List, Type, Union
 import h5py
 import numpy as np
 
+from .errors import MatlabDecodeError
 from .loaders import (AbstractLoader, CellLoader, CharLoader, LogicalLoader,
                       NumericLoader, StructLoader)
 
@@ -16,10 +17,6 @@ __all__ = [
     'Hdf5Matfile',
     'load_hdf5mat',
 ]
-
-
-class MatlabDecodeError(Exception):
-    pass
 
 
 class Hdf5Matfile(collections.abc.Mapping):
