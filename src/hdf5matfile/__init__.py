@@ -1,4 +1,5 @@
 import collections.abc
+import importlib.resources
 import os
 import pathlib
 from typing import Any, Dict, Generator, List, Type, Union
@@ -8,6 +9,8 @@ import numpy as np
 
 from .loaders import (AbstractLoader, CellLoader, CharLoader, LogicalLoader,
                       NumericLoader, StructLoader)
+
+__version__ = importlib.resources.read_text(__name__, '__version__')
 
 __all__ = [
     'Hdf5Matfile',
