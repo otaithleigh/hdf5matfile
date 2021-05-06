@@ -113,15 +113,19 @@ class Hdf5Matfile(collections.abc.Mapping):
             the array only has one element, it is extracted from the array
             completely (instead of returning a 0-d array).
         """
-        self.filepath = pathlib.Path(filename).resolve()
+        filepath = pathlib.Path(filename).resolve()
         try:
-            self._h5file = h5py.File(self.filepath, 'r')
+            self._h5file = h5py.File(filepath, 'r')
         except OSError as e:
             # Why are all the h5py errors just 'OSError'... ugh
             if 'No such file or directory' in str(e):
-                raise FileNotFoundError(f'{self.filepath}') from e
-            raise OSError(f'Could not open {self.filepath} as HDF5 file') from e
+                raise FileNotFoundError(f'{filepath}') from e
+            elif 'file signature not found' in str(e):
+                raise OSError(f'Could not open {filepath} as HDF5 file') from e
+            else:
+                raise e
         self._loaders: Dict[str, AbstractLoader] = {}
+        self.filepath = filepath
         self.squeeze = squeeze
 
     #=============================================
