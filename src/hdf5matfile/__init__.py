@@ -231,8 +231,8 @@ class Hdf5Matfile(collections.abc.Mapping):
         try:
             matlab_class = item.attrs['MATLAB_class'].decode()
         except KeyError:
-            raise ValueError('item does not have a MATLAB_class attribute;'
-                             ' cannot determine MATLAB type to load')
+            raise MatlabDecodeError('item does not have a MATLAB_class '
+                                    'attribute and cannot be decoded')
 
         loader = self.get_loader(matlab_class)
         the_item = loader.load(item)
