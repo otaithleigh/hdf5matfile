@@ -117,6 +117,9 @@ class Hdf5Matfile(collections.abc.Mapping):
         try:
             self._h5file = h5py.File(self.filepath, 'r')
         except OSError as e:
+            # Why are all the h5py errors just 'OSError'... ugh
+            if 'No such file or directory' in str(e):
+                raise FileNotFoundError(f'{self.filepath}') from e
             raise OSError(f'Could not open {self.filepath} as HDF5 file') from e
         self._loaders: Dict[str, AbstractLoader] = {}
         self.squeeze = squeeze
