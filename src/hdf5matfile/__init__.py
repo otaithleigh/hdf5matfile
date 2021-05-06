@@ -1,4 +1,5 @@
 import collections.abc
+import pathlib
 from typing import Dict, Generator, Type
 
 import h5py
@@ -111,10 +112,11 @@ class Hdf5Matfile(collections.abc.Mapping):
             the array only has one element, it is extracted from the array
             completely (instead of returning a 0-d array).
         """
+        self.filepath = pathlib.Path(filename).resolve()
         try:
-            self._h5file = h5py.File(filename, 'r')
+            self._h5file = h5py.File(self.filepath, 'r')
         except OSError as e:
-            raise OSError(f'Could not open {filename!r} as HDF5 file') from e
+            raise OSError(f'Could not open {self.filepath} as HDF5 file') from e
         self._loaders: Dict[str, AbstractLoader] = {}
         self.squeeze = squeeze
 
