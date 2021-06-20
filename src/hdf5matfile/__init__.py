@@ -256,6 +256,7 @@ class Hdf5Matfile(collections.abc.Mapping):
             squeezed = np.squeeze(a)
         return squeezed
 
+
 # Collections
 Hdf5Matfile.register_loader('struct', StructLoader)
 Hdf5Matfile.register_loader('cell', CellLoader)
