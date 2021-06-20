@@ -74,7 +74,7 @@ class StructLoader(AbstractLoader):
         if self._is_struct_array():
             return self._get_struct_array_shape()
         else:
-            return (0, 0)
+            return (1, 1)
 
     def _get_struct_array_shape(self):
         pointers = dict(self.h5object)
