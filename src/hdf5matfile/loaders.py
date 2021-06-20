@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, Union
 
 import h5py
 import numpy as np
@@ -16,58 +16,120 @@ __all__ = [
 ]
 
 
-class AbstractLoader(abc.ABC):
-    def __init__(self, matfile):
-        self.matfile = matfile
+def row_major_index(index):
+    if isinstance(index, tuple):
+        return index[::-1]
+    else:
+        return index
 
+
+H5Object = Union[h5py.Dataset, h5py.Group]
+
+
+class AbstractLoader(abc.ABC):
+    def __init__(self, h5object: H5Object, parent):
+        self.h5object = h5object
+        self.parent = parent
+
+    #=============================================
+    # Representation and metadata
+    #=============================================
+    def __repr__(self) -> str:
+        return f'<MATLAB {self.matlab_class} "{self.name}": shape {self.shape}>'
+
+    @property
+    def matlab_class(self):
+        return self.h5object.attrs['MATLAB_class'].decode()
+
+    @property
+    def name(self):
+        return self.h5object.name.split('/')[-1]
+
+    @property
     @abc.abstractmethod
-    def load(self, item) -> Any:
-        """Load the specified item from disk."""
+    def shape(self):
         ...
 
-    def _load_item(self, item):
-        return self.matfile._load_item(item)
+    def is_empty(self):
+        return 'MATLAB_empty' in self.h5object.attrs
+
+    #=============================================
+    # Loading interface
+    #=============================================
+    def __getitem__(self, index):
+        return self.load(index)
+
+    @abc.abstractmethod
+    def load(self, index) -> Any:
+        """Load the specified item from disk."""
+        ...
 
 
 class StructLoader(AbstractLoader):
     """Loader for MATLAB type `struct`. Returns arrays of dict."""
-    def load(self, struct: h5py.Group) -> np.ndarray:
-        if self._is_struct_array(struct):
-            s = self._load_array(struct)
+    h5object: h5py.Group
+
+    @property
+    def shape(self):
+        if self._is_struct_array():
+            return self._get_struct_array_shape()
         else:
-            s = self._load_scalar(struct)
+            return (0, 0)
+
+    def _get_struct_array_shape(self):
+        pointers = dict(self.h5object)
+        _, refarray = pointers.popitem()
+        return refarray.shape[::-1]
+
+    def load(self, index) -> np.ndarray:
+        if self._is_struct_array():
+            s = self._load_array(index)
+        else:
+            s = self._load_scalar(index)
         return s
 
-    def _load_scalar(self, struct: h5py.Group):
+    def _load_scalar(self, index):
         d = {
-            fieldname: self._load_item(item)
-            for fieldname, item in struct.items()
+            fieldname: self.parent.get_loader(item)[()]
+            for fieldname, item in self.h5object.items()
         }
-        return np.array([[d]], dtype='O')
+        return np.array([[d]], dtype='O')[index]
 
-    def _load_array(self, struct: h5py.Group):
+    def _load_array(self, index):
+        c_index = row_major_index(index)
+
         # Get an item from the struct to figure out how big it is, then stick it
         # back in the dict. I have no idea if there's a cleaner way, I just need
         # to inspect a single item *before* looping!
-        pointers = dict(struct)
+        pointers = dict(self.h5object)
         fieldname, refarray = pointers.popitem()
         pointers[fieldname] = refarray
 
+        # Figure out how much we're pulling out by indexing the sample refarray
+        sample_refs = refarray[c_index]
+
+        if isinstance(sample_refs, h5py.Reference):
+            # Indexing pulled out a single item from the array, just return a
+            # dict
+            return {
+                fieldname: self.parent.get_loader(refarray[c_index])[()]
+                for fieldname, refarray in pointers.items()
+            }
+
         # Initialize array of dict
-        a = np.empty(refarray.shape, dtype='O')
+        a = np.empty(sample_refs.shape, dtype='O')
         for i, _ in enumerate(a.flat):
             a[i] = dict()
 
         for fieldname, refarray in pointers.items():
-            for i, ref in enumerate(refarray[()].flat):
-                a.flat[i][fieldname] = self._load_item(ref)
+            for i, ref in enumerate(refarray[c_index].flat):
+                a.flat[i][fieldname] = self.parent.get_loader(ref)[()]
 
-        return a
+        return a.transpose()
 
-    @staticmethod
-    def _is_struct_array(struct: h5py.Group):
+    def _is_struct_array(self):
         """Determine whether the given MATLAB struct is scalar or not."""
-        for field in struct.values():
+        for field in self.h5object.values():
             # MATLAB represents scalar structs and struct arrays differently
             # within HDF5. Scalar structs are ordinary groups with named
             # datasets and/or subgroups. Struct arrays, however, are represented
@@ -91,36 +153,51 @@ class StructLoader(AbstractLoader):
         return isarray
 
 
-class CellLoader(AbstractLoader):
+class DatasetLoader(AbstractLoader):
+    h5object: h5py.Dataset
+
+    @property
+    def shape(self):
+        if self.is_empty():
+            return ()
+        else:
+            return self.h5object.shape[::-1]
+
+
+class CellLoader(DatasetLoader):
     """Loader for the MATLAB type `cell`. Returns arrays with dtype 'object'."""
-    def load(self, cell: h5py.Dataset) -> np.ndarray:
-        a = np.empty(cell.shape, dtype='O')
-        cellrefs = cell[()]
+    def load(self, index) -> np.ndarray:
+        cellrefs = self.h5object[row_major_index(index)]
+        if isinstance(cellrefs, h5py.Reference):
+            # Indexed a single item, completely extracting it from the array
+            return self.parent.get_loader(cellrefs)[()]
+
+        a = np.empty(cellrefs.shape, dtype='O')
         for i, ref in enumerate(cellrefs.flat):
-            a.flat[i] = self._load_item(ref)
-        return a
+            a.flat[i] = self.parent.get_loader(ref)[()]
+        return self.parent._process(a)
 
 
-class NumericLoader(AbstractLoader):
+class NumericLoader(DatasetLoader):
     """Loader for MATLAB numeric types."""
-    def load(self, numeric: h5py.Dataset) -> np.ndarray:
-        if 'MATLAB_empty' in numeric.attrs:
-            return np.array([], dtype=numeric.dtype)
-        return numeric[()]
+    def load(self, index) -> np.ndarray:
+        if 'MATLAB_empty' in self.h5object.attrs:
+            return np.array([], dtype=self.h5object.dtype)
+        return self.parent._process(self.h5object[row_major_index(index)])
 
 
 class LogicalLoader(NumericLoader):
     """Loader for MATLAB type `logical`."""
-    def load(self, logical: h5py.Dataset) -> np.ndarray:
-        return super().load(logical).astype('bool8')
+    def load(self, index) -> np.ndarray:
+        return super().load(index).astype('bool8')
 
 
-class CharLoader(AbstractLoader):
+class CharLoader(DatasetLoader):
     """Loader for the MATLAB type `char`. Returns str.
 
     Multi-dimensional `char` arrays are flattened to 1-D and returned as str.
     """
-    def load(self, char: h5py.Dataset) -> str:
-        if 'MATLAB_empty' in char.attrs:
+    def load(self, index) -> str:
+        if self.is_empty():
             return ''
-        return char[()].tobytes('F').decode('utf-16')
+        return self.h5object[()].tobytes('F').decode('utf-16')

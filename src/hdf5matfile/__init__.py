@@ -8,8 +8,8 @@ import h5py
 import numpy as np
 
 from .errors import MatlabDecodeError
-from .loaders import (AbstractLoader, CellLoader, CharLoader, LogicalLoader,
-                      NumericLoader, StructLoader)
+from .loaders import (AbstractLoader, CellLoader, CharLoader, H5Object,
+                      LogicalLoader, NumericLoader, StructLoader)
 
 __version__ = importlib.resources.read_text(__name__, '__version__')
 
@@ -32,23 +32,22 @@ class Hdf5Matfile(collections.abc.Mapping):
         with Hdf5Matfile(filename) as file:
             data = file.load_file()
 
-    To load a specific variable, use |load_variable|:
+    To fully load a specific variable from disk, use |load_variable|:
 
     .. code-block:: python
 
         with Hdf5Matfile(filename) as file:
             results = file.load_variable('results')
 
-    A mapping/dict-like interface is also supported:
+    For partial loading, a mapping/dict-like interface is also supported:
 
     .. code-block:: python
 
         with Hdf5Matfile(filename) as file:
             results = file['results']
-            variables = list(file.keys())
-            values = list(file.values())
-            for var, value in file.items():
-                ...
+            time = results[0, :]
+            disp = results[1, :]
+            ...
 
     If you're not using a context manager, make sure to close the file after
     you're done:
@@ -124,7 +123,6 @@ class Hdf5Matfile(collections.abc.Mapping):
                 raise OSError(f'Could not open {filepath} as HDF5 file') from e
             else:
                 raise e
-        self._loaders: Dict[str, AbstractLoader] = {}
         self.filepath = filepath
         self.squeeze = squeeze
 
@@ -161,10 +159,10 @@ class Hdf5Matfile(collections.abc.Mapping):
             Dict whose keys are the top-level variable names.
         """
         d = {}
-        for key, value in self._h5file.items():
-            if key.startswith('#'):
+        for varname, h5object in self._h5file.items():
+            if varname.startswith('#'):
                 continue
-            d[key] = self._load_item(value)
+            d[varname] = self.get_loader(h5object)[()]
         return d
 
     def load_variable(self, varname: str):
@@ -175,16 +173,15 @@ class Hdf5Matfile(collections.abc.Mapping):
         varname : str
             The name of the variable to load.
         """
-        if varname.startswith('#'):
-            raise KeyError(f'{varname!r} is not a MATLAB variable.')
-
-        return self._load_item(self._h5file[varname])
+        h5object = self.get_h5object(varname)
+        return self.get_loader(h5object)[()]
 
     #=============================================
     # Mapping interface
     #=============================================
     def __getitem__(self, varname: str):
-        return self.load_variable(varname)
+        h5object = self.get_h5object(varname)
+        return self.get_loader(h5object)
 
     def __iter__(self) -> Generator[str, Any, Any]:
         for key in self._h5file.keys():
@@ -204,32 +201,35 @@ class Hdf5Matfile(collections.abc.Mapping):
     def register_loader(cls, matlab_class: str, loader: Type[AbstractLoader]):
         cls._loader_dispatch[matlab_class] = loader
 
-    def get_loader(self, matlab_class: str):
-        try:
-            loader = self._loaders[matlab_class]
-        except KeyError:
-            try:
-                LoaderType = self._loader_dispatch[matlab_class]
-            except KeyError as e:
-                raise MatlabDecodeError('Unsupported MATLAB class'
-                                        f' {matlab_class!r}') from e
-            loader = self._loaders[matlab_class] = LoaderType(self)
+    def get_loader(self, h5object: Union[H5Object, h5py.Reference]):
+        """Get the Loader object for a given high-level h5py object.
 
-        return loader
-
-    def _load_item(self, item):
-        if isinstance(item, h5py.Reference):
-            return self._load_item(self._h5file[item])
+        Reference objects are de-referenced, and a loader for the underlying
+        data is returned.
+        """
+        if isinstance(h5object, h5py.Reference):
+            return self.get_loader(self._h5file[h5object])
 
         try:
-            matlab_class = item.attrs['MATLAB_class'].decode()
+            matlab_class = h5object.attrs['MATLAB_class'].decode()
         except KeyError:
             raise MatlabDecodeError('item does not have a MATLAB_class '
                                     'attribute and cannot be decoded')
 
-        loader = self.get_loader(matlab_class)
-        the_item = loader.load(item)
-        return self._process(the_item)
+        try:
+            loader = self._loader_dispatch[matlab_class]
+        except KeyError as e:
+            raise MatlabDecodeError('Unsupported MATLAB class'
+                                    f' {matlab_class!r}') from e
+
+        return loader(h5object, parent=self)
+
+    def get_h5object(self, varname: str):
+        """Get the h5py high-level object for varname."""
+        if varname.startswith('#'):
+            raise KeyError(f'{varname!r} is not a MATLAB variable.')
+
+        return self._h5file[varname]
 
     def _process(self, item):
         if isinstance(item, np.ndarray):

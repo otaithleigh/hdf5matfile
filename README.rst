@@ -16,23 +16,22 @@ To load all the variables from the file, use ``Hdf5Matfile.load_file``:
     with Hdf5Matfile(filename) as file:
         data = file.load_file()
 
-To load a specific variable, use ``Hdf5Matfile.load_variable``:
+To fully load a specific variable from disk, use |load_variable|:
 
 .. code:: python
 
     with Hdf5Matfile(filename) as file:
         results = file.load_variable('results')
 
-A mapping/dict-like interface is also supported:
+For partial loading, a mapping/dict-like interface is also supported:
 
 .. code:: python
 
     with Hdf5Matfile(filename) as file:
         results = file['results']
-        variables = file.keys()
-        values = file.values()
-        for var, value in file.items():
-            ...
+        time = results[0, :]
+        disp = results[1, :]
+        ...
 
 If you're not using a context manager, make sure to close the file after
 you're done:
