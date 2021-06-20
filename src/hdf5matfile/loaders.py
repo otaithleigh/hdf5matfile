@@ -23,7 +23,7 @@ class AbstractLoader(abc.ABC):
     @abc.abstractmethod
     def load(self, item) -> Any:
         """Load the specified item from disk."""
-        pass
+        ...
 
     def _load_item(self, item):
         return self.matfile._load_item(item)
