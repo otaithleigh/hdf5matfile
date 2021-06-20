@@ -6,6 +6,15 @@ from typing import Any
 import h5py
 import numpy as np
 
+__all__ = [
+    'AbstractLoader',
+    'CellLoader',
+    'CharLoader',
+    'LogicalLoader',
+    'NumericLoader',
+    'StructLoader',
+]
+
 
 class AbstractLoader(abc.ABC):
     def __init__(self, matfile):
