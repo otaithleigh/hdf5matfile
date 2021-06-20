@@ -2,7 +2,7 @@ import importlib.resources
 
 import numpy as np
 
-from hdf5matfile import load_hdf5mat
+from hdf5matfile import Hdf5Matfile, load_hdf5mat
 
 
 def resource_path(name):
@@ -15,6 +15,11 @@ def get_var_loader(resource):
             return load_hdf5mat(p, var)
 
     return load_var
+
+
+def get_matfile(resource, squeeze=False):
+    with resource_path(resource) as p:
+        return Hdf5Matfile(p, squeeze)
 
 
 def assert_array_equal(a: np.ndarray, b: np.ndarray):
