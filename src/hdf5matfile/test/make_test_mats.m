@@ -69,7 +69,7 @@ clear a0 a1 a2 a3
 a0 = 1;
 a1 = [1 2 3];
 a2 = [1 2 3 ; 4 5 6];
-a3 = ones(2, 3, 4);
+a3 = reshape(1:24, 2, 3, 4);
 
 save 'test_arrays.mat' a0 a1 a2 a3 -v7.3
 

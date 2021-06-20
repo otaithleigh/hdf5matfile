@@ -22,4 +22,4 @@ def test_2d():
 
 def test_3d():
     a3 = load_var('a3')
-    assert_array_equal(a3, np.ones((2, 3, 4)))
+    assert_array_equal(a3, np.arange(1., 24 + 1).reshape(2, 3, 4, order='F'))
