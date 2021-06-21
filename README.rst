@@ -16,7 +16,7 @@ To load all the variables from the file, use ``Hdf5Matfile.load_file``:
     with Hdf5Matfile(filename) as file:
         data = file.load_file()
 
-To fully load a specific variable from disk, use |load_variable|:
+To fully load a specific variable from disk, use ``Hdf5Matfile.load_variable``:
 
 .. code:: python
 
