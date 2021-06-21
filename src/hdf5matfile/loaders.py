@@ -86,7 +86,7 @@ class StructLoader(AbstractLoader):
             s = self._load_array(index)
         else:
             s = self._load_scalar(index)
-        return s
+        return self.parent._process(s)
 
     def _load_scalar(self, index):
         d = {
@@ -125,7 +125,7 @@ class StructLoader(AbstractLoader):
             for i, ref in enumerate(refarray[c_index].flat):
                 a.flat[i][fieldname] = self.parent.get_loader(ref)[()]
 
-        return a.transpose()
+        return a
 
     def _is_struct_array(self):
         """Determine whether the given MATLAB struct is scalar or not."""
