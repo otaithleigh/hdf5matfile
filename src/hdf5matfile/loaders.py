@@ -200,4 +200,5 @@ class CharLoader(DatasetLoader):
     def load(self, index) -> str:
         if self.is_empty():
             return ''
-        return self.h5object[()].tobytes('F').decode('utf-16')
+        c_index = row_major_index(index)
+        return self.h5object[c_index].tobytes('F').decode('utf-16')
