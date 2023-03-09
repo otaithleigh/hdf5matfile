@@ -7,6 +7,7 @@ Changelog
 ### Fixed
 
 - Suppress `DeprecationWarning`s from `importlib.resources` on Python 3.9+
+- Add missing LICENSE file and PyPI classifiers
 
 
 [0.4.1] - 2021-06-21
