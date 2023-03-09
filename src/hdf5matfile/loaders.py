@@ -7,12 +7,12 @@ import h5py
 import numpy as np
 
 __all__ = [
-    'AbstractLoader',
-    'CellLoader',
-    'CharLoader',
-    'LogicalLoader',
-    'NumericLoader',
-    'StructLoader',
+    "AbstractLoader",
+    "CellLoader",
+    "CharLoader",
+    "LogicalLoader",
+    "NumericLoader",
+    "StructLoader",
 ]
 
 
@@ -31,19 +31,19 @@ class AbstractLoader(abc.ABC):
         self.h5object = h5object
         self.parent = parent
 
-    #=============================================
+    # =============================================
     # Representation and metadata
-    #=============================================
+    # =============================================
     def __repr__(self) -> str:
         return f'<MATLAB {self.matlab_class} "{self.name}": shape {self.shape}>'
 
     @property
     def matlab_class(self):
-        return self.h5object.attrs['MATLAB_class'].decode()
+        return self.h5object.attrs["MATLAB_class"].decode()
 
     @property
     def name(self):
-        return self.h5object.name.split('/')[-1]
+        return self.h5object.name.split("/")[-1]
 
     @property
     @abc.abstractmethod
@@ -51,11 +51,11 @@ class AbstractLoader(abc.ABC):
         ...
 
     def is_empty(self):
-        return 'MATLAB_empty' in self.h5object.attrs
+        return "MATLAB_empty" in self.h5object.attrs
 
-    #=============================================
+    # =============================================
     # Loading interface
-    #=============================================
+    # =============================================
     def __getitem__(self, index):
         return self.load(index)
 
@@ -67,6 +67,7 @@ class AbstractLoader(abc.ABC):
 
 class StructLoader(AbstractLoader):
     """Loader for MATLAB type `struct`. Returns arrays of dict."""
+
     h5object: h5py.Group
 
     @property
@@ -93,7 +94,7 @@ class StructLoader(AbstractLoader):
             fieldname: self.parent.get_loader(item)[()]
             for fieldname, item in self.h5object.items()
         }
-        return np.array([[d]], dtype='O')[index]
+        return np.array([[d]], dtype="O")[index]
 
     def _load_array(self, index):
         c_index = row_major_index(index)
@@ -117,7 +118,7 @@ class StructLoader(AbstractLoader):
             }
 
         # Initialize array of dict
-        a = np.empty(sample_refs.shape, dtype='O')
+        a = np.empty(sample_refs.shape, dtype="O")
         for i, _ in enumerate(a.flat):
             a[i] = dict()
 
@@ -142,7 +143,7 @@ class StructLoader(AbstractLoader):
             # struct array from a cell array -- the cell array is assigned a
             # MATLAB_class, and the fields of a struct array are not.
             try:
-                matlab_class = field.attrs['MATLAB_class']
+                matlab_class = field.attrs["MATLAB_class"]
             except KeyError:
                 isarray = True
                 break
@@ -166,13 +167,14 @@ class DatasetLoader(AbstractLoader):
 
 class CellLoader(DatasetLoader):
     """Loader for the MATLAB type `cell`. Returns arrays with dtype 'object'."""
+
     def load(self, index) -> np.ndarray:
         cellrefs = self.h5object[row_major_index(index)]
         if isinstance(cellrefs, h5py.Reference):
             # Indexed a single item, completely extracting it from the array
             return self.parent.get_loader(cellrefs)[()]
 
-        a = np.empty(cellrefs.shape, dtype='O')
+        a = np.empty(cellrefs.shape, dtype="O")
         for i, ref in enumerate(cellrefs.flat):
             a.flat[i] = self.parent.get_loader(ref)[()]
         return self.parent._process(a)
@@ -180,16 +182,18 @@ class CellLoader(DatasetLoader):
 
 class NumericLoader(DatasetLoader):
     """Loader for MATLAB numeric types."""
+
     def load(self, index) -> np.ndarray:
-        if 'MATLAB_empty' in self.h5object.attrs:
+        if "MATLAB_empty" in self.h5object.attrs:
             return np.array([], dtype=self.h5object.dtype)
         return self.parent._process(self.h5object[row_major_index(index)])
 
 
 class LogicalLoader(NumericLoader):
     """Loader for MATLAB type `logical`."""
+
     def load(self, index) -> np.ndarray:
-        return super().load(index).astype('bool8')
+        return super().load(index).astype("bool8")
 
 
 class CharLoader(DatasetLoader):
@@ -197,8 +201,9 @@ class CharLoader(DatasetLoader):
 
     Multi-dimensional `char` arrays are flattened to 1-D and returned as str.
     """
+
     def load(self, index) -> str:
         if self.is_empty():
-            return ''
+            return ""
         c_index = row_major_index(index)
-        return self.h5object[c_index].tobytes('F').decode('utf-16')
+        return self.h5object[c_index].tobytes("F").decode("utf-16")

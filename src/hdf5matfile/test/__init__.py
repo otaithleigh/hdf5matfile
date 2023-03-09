@@ -28,10 +28,9 @@ def assert_array_equal(a: np.ndarray, b: np.ndarray):
     np.testing.assert_array_equal(a, b)
 
 
-def assert_array_close(actual: np.ndarray,
-                       desired: np.ndarray,
-                       rtol: float = 1e-7,
-                       atol: float = 0):
+def assert_array_close(
+    actual: np.ndarray, desired: np.ndarray, rtol: float = 1e-7, atol: float = 0
+):
     """Assert that two arrays have the same values (within tolerance),
     dtype, and shape.
     """

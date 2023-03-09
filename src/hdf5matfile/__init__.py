@@ -8,14 +8,21 @@ import h5py
 import numpy as np
 
 from .errors import MatlabDecodeError
-from .loaders import (AbstractLoader, CellLoader, CharLoader, H5Object,
-                      LogicalLoader, NumericLoader, StructLoader)
+from .loaders import (
+    AbstractLoader,
+    CellLoader,
+    CharLoader,
+    H5Object,
+    LogicalLoader,
+    NumericLoader,
+    StructLoader,
+)
 
-__version__ = importlib.resources.read_text(__name__, '__version__')
+__version__ = importlib.resources.read_text(__name__, "__version__")
 
 __all__ = [
-    'Hdf5Matfile',
-    'load_hdf5mat',
+    "Hdf5Matfile",
+    "load_hdf5mat",
 ]
 
 
@@ -99,6 +106,7 @@ class Hdf5Matfile(collections.abc.Mapping):
     .. |load_file| :method:`Hdf5Matfile.load_file`
     .. |load_variable| :method:`Hdf5Matfile.load_variable`
     """
+
     def __init__(self, filename: os.PathLike, squeeze: bool = False):
         """Open a MATLAB v7.3 *.mat file.
 
@@ -114,21 +122,21 @@ class Hdf5Matfile(collections.abc.Mapping):
         """
         filepath = pathlib.Path(filename).resolve()
         try:
-            self._h5file = h5py.File(filepath, 'r')
+            self._h5file = h5py.File(filepath, "r")
         except OSError as e:
             # Why are all the h5py errors just 'OSError'... ugh
-            if 'No such file or directory' in str(e):
-                raise FileNotFoundError(f'{filepath}') from e
-            elif 'file signature not found' in str(e):
-                raise OSError(f'Could not open {filepath} as HDF5 file') from e
+            if "No such file or directory" in str(e):
+                raise FileNotFoundError(f"{filepath}") from e
+            elif "file signature not found" in str(e):
+                raise OSError(f"Could not open {filepath} as HDF5 file") from e
             else:
                 raise e
         self.filepath = filepath
         self.squeeze = squeeze
 
-    #=============================================
+    # =============================================
     # Context manager stuff
-    #=============================================
+    # =============================================
     def __enter__(self):
         return self
 
@@ -147,9 +155,9 @@ class Hdf5Matfile(collections.abc.Mapping):
             return True
         return False
 
-    #=============================================
+    # =============================================
     # Public interface
-    #=============================================
+    # =============================================
     def load_file(self):
         """Load the entire file.
 
@@ -160,7 +168,7 @@ class Hdf5Matfile(collections.abc.Mapping):
         """
         d = {}
         for varname, h5object in self._h5file.items():
-            if varname.startswith('#'):
+            if varname.startswith("#"):
                 continue
             d[varname] = self.get_loader(h5object)[()]
         return d
@@ -176,25 +184,25 @@ class Hdf5Matfile(collections.abc.Mapping):
         h5object = self.get_h5object(varname)
         return self.get_loader(h5object)[()]
 
-    #=============================================
+    # =============================================
     # Mapping interface
-    #=============================================
+    # =============================================
     def __getitem__(self, varname: str):
         h5object = self.get_h5object(varname)
         return self.get_loader(h5object)
 
     def __iter__(self) -> Generator[str, Any, Any]:
         for key in self._h5file.keys():
-            if key.startswith('#'):
+            if key.startswith("#"):
                 continue
             yield key
 
     def __len__(self):
         return len(list(iter(self)))
 
-    #=============================================
+    # =============================================
     # Loaders
-    #=============================================
+    # =============================================
     _loader_dispatch: Dict[str, Type[AbstractLoader]] = {}
 
     @classmethod
@@ -211,23 +219,25 @@ class Hdf5Matfile(collections.abc.Mapping):
             return self.get_loader(self._h5file[h5object])
 
         try:
-            matlab_class = h5object.attrs['MATLAB_class'].decode()
+            matlab_class = h5object.attrs["MATLAB_class"].decode()
         except KeyError:
-            raise MatlabDecodeError('item does not have a MATLAB_class '
-                                    'attribute and cannot be decoded')
+            raise MatlabDecodeError(
+                "item does not have a MATLAB_class " "attribute and cannot be decoded"
+            )
 
         try:
             loader = self._loader_dispatch[matlab_class]
         except KeyError as e:
-            raise MatlabDecodeError('Unsupported MATLAB class'
-                                    f' {matlab_class!r}') from e
+            raise MatlabDecodeError(
+                "Unsupported MATLAB class" f" {matlab_class!r}"
+            ) from e
 
         return loader(h5object, parent=self)
 
     def get_h5object(self, varname: str):
         """Get the h5py high-level object for varname."""
-        if varname.startswith('#'):
-            raise KeyError(f'{varname!r} is not a MATLAB variable.')
+        if varname.startswith("#"):
+            raise KeyError(f"{varname!r} is not a MATLAB variable.")
 
         return self._h5file[varname]
 
@@ -250,31 +260,33 @@ class Hdf5Matfile(collections.abc.Mapping):
 
 
 # Collections
-Hdf5Matfile.register_loader('struct', StructLoader)
-Hdf5Matfile.register_loader('cell', CellLoader)
+Hdf5Matfile.register_loader("struct", StructLoader)
+Hdf5Matfile.register_loader("cell", CellLoader)
 
 # Floats
-Hdf5Matfile.register_loader('single', NumericLoader)
-Hdf5Matfile.register_loader('double', NumericLoader)
+Hdf5Matfile.register_loader("single", NumericLoader)
+Hdf5Matfile.register_loader("double", NumericLoader)
 
 # Integers
-Hdf5Matfile.register_loader('logical', LogicalLoader)
-Hdf5Matfile.register_loader('int8', NumericLoader)
-Hdf5Matfile.register_loader('int16', NumericLoader)
-Hdf5Matfile.register_loader('int32', NumericLoader)
-Hdf5Matfile.register_loader('int64', NumericLoader)
-Hdf5Matfile.register_loader('uint8', NumericLoader)
-Hdf5Matfile.register_loader('uint16', NumericLoader)
-Hdf5Matfile.register_loader('uint32', NumericLoader)
-Hdf5Matfile.register_loader('uint64', NumericLoader)
+Hdf5Matfile.register_loader("logical", LogicalLoader)
+Hdf5Matfile.register_loader("int8", NumericLoader)
+Hdf5Matfile.register_loader("int16", NumericLoader)
+Hdf5Matfile.register_loader("int32", NumericLoader)
+Hdf5Matfile.register_loader("int64", NumericLoader)
+Hdf5Matfile.register_loader("uint8", NumericLoader)
+Hdf5Matfile.register_loader("uint16", NumericLoader)
+Hdf5Matfile.register_loader("uint32", NumericLoader)
+Hdf5Matfile.register_loader("uint64", NumericLoader)
 
 # Strings
-Hdf5Matfile.register_loader('char', CharLoader)
+Hdf5Matfile.register_loader("char", CharLoader)
 
 
-def load_hdf5mat(filename: os.PathLike,
-                 variables: Union[str, List[str]] = None,
-                 squeeze: bool = False):
+def load_hdf5mat(
+    filename: os.PathLike,
+    variables: Union[str, List[str]] = None,
+    squeeze: bool = False,
+):
     """Load a MATLAB v7.3 *.mat file. See |Hdf5Matfile| for limitations and
     supported data types.
 
