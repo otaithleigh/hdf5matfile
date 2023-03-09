@@ -226,15 +226,13 @@ class Hdf5Matfile(collections.abc.Mapping):
             matlab_class = h5object.attrs["MATLAB_class"].decode()
         except KeyError:
             raise MatlabDecodeError(
-                "item does not have a MATLAB_class " "attribute and cannot be decoded"
+                "item does not have a MATLAB_class attribute and cannot be decoded"
             )
 
         try:
             loader = self._loader_dispatch[matlab_class]
         except KeyError as e:
-            raise MatlabDecodeError(
-                "Unsupported MATLAB class" f" {matlab_class!r}"
-            ) from e
+            raise MatlabDecodeError(f"Unsupported MATLAB class {matlab_class!r}") from e
 
         return loader(h5object, parent=self)
 
