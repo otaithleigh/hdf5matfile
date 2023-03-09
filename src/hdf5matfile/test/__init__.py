@@ -1,12 +1,19 @@
-import importlib.resources
+import sys
+from importlib import resources
 
 import numpy as np
 
 from hdf5matfile import Hdf5Matfile, load_hdf5mat
 
+if sys.version_info >= (3, 9):
 
-def resource_path(name):
-    return importlib.resources.path(__name__, name)
+    def resource_path(name):
+        return resources.as_file(resources.files(__name__).joinpath(name))
+
+else:
+
+    def resource_path(name):
+        return resources.path(__name__, name)
 
 
 def get_var_loader(resource):

@@ -1,7 +1,8 @@
 import collections.abc
-import importlib.resources
 import os
 import pathlib
+import sys
+from importlib import resources
 from typing import Any, Dict, Generator, List, Type, Union
 
 import h5py
@@ -18,7 +19,10 @@ from .loaders import (
     StructLoader,
 )
 
-__version__ = importlib.resources.read_text(__name__, "__version__")
+if sys.version_info >= (3, 9):
+    __version__ = resources.files(__name__).joinpath("__version__").read_text()
+else:
+    __version__ = resources.read_text(__name__, "__version__")
 
 __all__ = [
     "Hdf5Matfile",

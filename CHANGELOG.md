@@ -1,6 +1,13 @@
 Changelog
 =========
 
+[Upcoming]
+----------
+
+### Fixed
+
+- Suppress `DeprecationWarning`s from `importlib.resources` on Python 3.9+
+
 
 [0.4.1] - 2021-06-21
 --------------------
