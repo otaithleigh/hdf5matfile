@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Union
+from typing import Any, Tuple, Union
 
 import h5py
 import numpy as np
@@ -38,16 +38,16 @@ class AbstractLoader(abc.ABC):
         return f'<MATLAB {self.matlab_class} "{self.name}": shape {self.shape}>'
 
     @property
-    def matlab_class(self):
+    def matlab_class(self) -> str:
         return self.h5object.attrs["MATLAB_class"].decode()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.h5object.name.split("/")[-1]
 
     @property
     @abc.abstractmethod
-    def shape(self):
+    def shape(self) -> Tuple[int, ...]:
         ...
 
     def is_empty(self):
